@@ -1,52 +1,114 @@
-# XR Hand Control Web App
+# XR Gallery — Touchless Hand Control Image Gallery
 
-An immersive hand-tracking web application that enables touchless navigation through image galleries using MediaPipe hand detection.
+A WebXR-inspired image gallery with touchless hand gesture controls using MediaPipe Hand Tracking.
 
-## Features
+🌐 **Live Demo**: [xr-scroll.vercel.app](https://xr-scroll.vercel.app/)  
+📦 **GitHub**: [github.com/Akanksha1225/xr_scroll](https://github.com/Akanksha1225/xr_scroll)
 
-- **Hand Tracking**: Uses MediaPipe Hands for real-time hand detection
-- **Virtual Cursor**: Custom XR cursor that follows your index finger
-- **Gesture Controls**:
-  - Move hand to edge zones to scroll (vertical & horizontal)
-  - Hover over items to slow down scrolling
-  - Pinch gesture (thumb + index) to select items
-- **Image Gallery**: Multiple carousel categories with dynamic images from Picsum Photos
-- **Visual Feedback**: 
-  - Camera HUD showing hand skeleton
-  - Toast notifications on selection
-  - Hover effects and animations
+---
 
-## Usage
+## ✨ Features
 
-1. Open `index.html` in a modern web browser (Chrome recommended)
-2. Allow camera access when prompted
-3. Move your hand in front of the camera:
-   - **Move cursor**: Point with your index finger
-   - **Scroll**: Move hand to screen edges
-   - **Select**: Pinch thumb and index finger together
+| Feature | Description |
+|---------|-------------|
+| **Hand Tracking** | Real-time hand detection using MediaPipe Hands |
+| **Virtual Cursor** | Custom cursor follows your index finger |
+| **Pinch-to-Select** | Bring thumb and index finger together to click |
+| **Edge Scrolling** | Move hand to screen edges to scroll |
+| **3D Card Effects** | Hover tilt and selection bump animations |
+| **Onboarding Modal** | Tutorial popup for first-time users |
 
-## Controls
+---
+
+## 🎮 Controls
 
 | Gesture | Action |
 |---------|--------|
-| Index finger pointing | Move cursor |
-| Hand near top/bottom | Scroll up/down |
-| Hand near left/right | Pan carousels left/right |
-| Pinch (thumb + index) | Click/Select item |
-| Hover on card | Slow down horizontal scroll |
+| ☝️ **Point** | Move virtual cursor with index finger |
+| 🤏 **Pinch** | Select/click items (thumb + index finger) |
+| 👋 **Move to Edges** | Scroll gallery horizontally/vertically |
 
-## Technologies
+---
 
-- [MediaPipe Hands](https://google.github.io/mediapipe/solutions/hands.html) - Hand tracking
-- [Tailwind CSS](https://tailwindcss.com/) - Styling
-- [Picsum Photos](https://picsum.photos/) - Dynamic images
+## 🛠️ Tech Stack
 
-## Requirements
+- **HTML5/CSS3/JavaScript** — No frameworks, pure vanilla
+- **MediaPipe Hands** — Real-time hand tracking
+- **Picsum Photos API** — High-quality stock images
+- **CSS Animations** — 3D transforms and transitions
 
-- Modern web browser with WebGL support
-- Webcam access
-- HTTPS or localhost (for camera access)
+---
 
-## License
+## 🚀 Quick Start
 
-MIT License
+```bash
+# Clone repository
+git clone https://github.com/Akanksha1225/xr_scroll.git
+cd xr_scroll
+
+# Serve locally (any static server works)
+python3 -m http.server 8080
+
+# Open in browser
+open http://localhost:8080
+```
+
+---
+
+## 📁 Project Structure
+
+```
+xr_scroll/
+├── index.html      # Single-page application
+└── README.md       # This file
+```
+
+---
+
+## 🎨 Design Features
+
+- **Playful gradient background** with animated floating shapes
+- **Glassmorphism cards** with blur effects
+- **Cursor trail effect** for enhanced interactivity
+- **Category sections**: Nature, Architecture, Travel, Abstract
+- **Help button** to re-show onboarding tutorial
+
+---
+
+## 📸 Screenshots
+
+The gallery features 4 themed sections with 10 images each:
+- 🌿 **Nature** — Landscapes and wildlife
+- 🏛️ **Architecture** — Buildings and structures
+- ✈️ **Travel** — World destinations
+- 🎨 **Abstract** — Artistic compositions
+
+---
+
+## 🔧 Configuration
+
+Customize behavior in the `CONFIG` object:
+
+```javascript
+const CONFIG = {
+  handTracking: {
+    maxHands: 1,
+    detectionConfidence: 0.7,
+    trackingConfidence: 0.5
+  },
+  scrollSpeed: 8,
+  pinchDistance: 50  // Threshold for pinch detection
+};
+```
+
+---
+
+## 📄 License
+
+MIT License — Feel free to use and modify!
+
+---
+
+## 👤 Author
+
+**Akanksha** — [GitHub](https://github.com/Akanksha1225)
