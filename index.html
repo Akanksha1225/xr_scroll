@@ -1,345 +1,772 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XR Hand Control Web App</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- MediaPipe Hands -->
+    <title>XR Gallery</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"
+        crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
-    
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            cursor: none; /* Hide default mouse cursor */
-            overflow-x: hidden;
-            background-color: #020617; /* Deep slate/black */
-            color: #e2e8f0;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-        /* --- XR Virtual Cursor --- */
-        #xr-cursor {
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            overflow-x: hidden;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            min-height: 100vh;
+            cursor: none;
+        }
+
+        /* Floating shapes */
+        .bg-shapes {
             position: fixed;
-            top: 0; left: 0;
-            width: 20px; height: 20px;
-            border: 2px solid rgba(255, 255, 255, 0.9);
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .shape {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.12;
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .shape:nth-child(1) {
+            width: 300px;
+            height: 300px;
+            background: #fff;
+            top: 10%;
+            left: -5%;
+        }
+
+        .shape:nth-child(2) {
+            width: 200px;
+            height: 200px;
+            background: #ffd700;
+            top: 60%;
+            right: 10%;
+            animation-delay: -5s;
+        }
+
+        .shape:nth-child(3) {
+            width: 150px;
+            height: 150px;
+            background: #00ff88;
+            bottom: 20%;
+            left: 30%;
+            animation-delay: -10s;
+        }
+
+        .shape:nth-child(4) {
+            width: 250px;
+            height: 250px;
+            background: #ff6b6b;
+            top: 30%;
+            right: -5%;
+            animation-delay: -15s;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0) rotate(0deg);
+            }
+
+            50% {
+                transform: translateY(-30px) rotate(5deg);
+            }
+        }
+
+        /* Onboarding Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            z-index: 20000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 1;
+            transition: opacity 0.4s;
+        }
+
+        .modal-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .modal {
+            background: #fff;
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 480px;
+            width: 90%;
+            text-align: center;
+            transform: scale(1);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-overlay.hidden .modal {
+            transform: scale(0.9);
+        }
+
+        .modal-emoji {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .modal h2 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 16px;
+        }
+
+        .modal p {
+            color: #666;
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 32px;
+        }
+
+        .instructions {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-bottom: 32px;
+            text-align: left;
+        }
+
+        .instruction {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
+
+        .instruction-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .instruction-icon.move {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .instruction-icon.pinch {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+        }
+
+        .instruction-icon.scroll {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+        }
+
+        .instruction-text h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 4px;
+        }
+
+        .instruction-text p {
+            font-size: 13px;
+            color: #888;
+            margin: 0;
+        }
+
+        .modal-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            border: none;
+            padding: 16px 48px;
+            border-radius: 100px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .modal-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        /* Cursor */
+        .cursor-dot {
+            position: fixed;
+            width: 14px;
+            height: 14px;
+            background: #fff;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10001;
+            pointer-events: none;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+            transition: transform 0.1s, width 0.2s, height 0.2s, background 0.2s;
+        }
+
+        .cursor-dot.hovering {
+            width: 56px;
+            height: 56px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid #fff;
+        }
+
+        .cursor-dot.clicked {
+            transform: translate(-50%, -50%) scale(2);
+            background: #ffd700;
+        }
+
+        .cursor-trail {
+            position: fixed;
             border-radius: 50%;
             pointer-events: none;
             transform: translate(-50%, -50%);
-            z-index: 10000;
-            transition: width 0.1s, height 0.1s, background-color 0.1s, transform 0.05s linear;
-            box-shadow: 0 0 10px rgba(255,255,255,0.4);
-            backdrop-filter: blur(1px);
-        }
-        
-        #xr-cursor.hovering {
-            border-color: #4ade80; /* Green */
-            width: 40px; height: 40px;
-            background-color: rgba(74, 222, 128, 0.15);
+            background: rgba(255, 255, 255, 0.5);
         }
 
-        #xr-cursor.clutch-active {
-            background-color: rgba(245, 158, 11, 0.8); /* Orange */
-            width: 16px; height: 16px;
-            border-color: #fbbf24;
-            box-shadow: 0 0 15px rgba(245, 158, 11, 0.6);
-        }
-
-        #xr-cursor.clicked {
-            background-color: #ffffff;
-            box-shadow: 0 0 25px #ffffff;
-            transform: translate(-50%, -50%) scale(2.0);
-        }
-
-        /* --- Camera HUD --- */
+        /* Camera HUD */
         .hud-container {
             position: fixed;
-            bottom: 20px; right: 20px;
-            width: 200px; height: 150px;
-            border-radius: 12px;
+            bottom: 24px;
+            right: 24px;
+            width: 140px;
+            height: 105px;
+            border-radius: 16px;
             overflow: hidden;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            background: #000;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
             z-index: 9000;
-            border: 1px solid #334155;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        .hud-video, .hud-canvas {
+        .hud-video,
+        .hud-canvas {
             position: absolute;
-            width: 100%; height: 100%;
+            width: 100%;
+            height: 100%;
             transform: scaleX(-1);
             object-fit: cover;
         }
-        .hud-video { opacity: 0.4; }
-        .hud-canvas { z-index: 2; }
 
-        .hud-overlay { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
-        .zone-line-h { position: absolute; left: 0; right: 0; height: 1px; background: rgba(255,255,255,0.15); border-bottom: 1px dashed rgba(255,255,255,0.3); }
-        .zone-line-v { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,0.15); border-right: 1px dashed rgba(255,255,255,0.3); }
-        .zone-label { position: absolute; font-size: 9px; color: rgba(255,255,255,0.6); font-weight: bold; text-transform: uppercase; }
+        .hud-video {
+            opacity: 0.5;
+        }
+
+        .hud-canvas {
+            z-index: 2;
+        }
 
         .hud-status {
-            position: absolute; bottom: 0; left: 0; right: 0;
-            padding: 4px; background: rgba(0,0,0,0.85); color: #94a3b8;
-            font-size: 10px; text-align: center; z-index: 5;
-            display: flex; align-items: center; justify-content: center; gap: 6px;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 6px;
+            background: rgba(0, 0, 0, 0.5);
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 9px;
+            text-align: center;
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }
-        .status-dot { width: 6px; height: 6px; border-radius: 50%; background-color: #ef4444; }
-        .status-dot.active { background-color: #22c55e; }
-        .status-dot.scrolling { background-color: #3b82f6; box-shadow: 0 0 5px #3b82f6; }
-        .status-dot.clutch { background-color: #f59e0b; box-shadow: 0 0 5px #f59e0b; }
 
-        /* --- Interactive Elements --- */
-        .carousel-wrapper {
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #666;
+        }
+
+        .status-dot.active {
+            background: #00ff88;
+            box-shadow: 0 0 8px #00ff88;
+        }
+
+        .status-dot.scrolling {
+            background: #4ecdc4;
+            box-shadow: 0 0 8px #4ecdc4;
+        }
+
+        .status-dot.clutch {
+            background: #ffd700;
+            box-shadow: 0 0 8px #ffd700;
+        }
+
+        /* Content */
+        main {
             position: relative;
-            margin-bottom: 4rem;
+            z-index: 1;
+            padding-bottom: 100px;
+        }
+
+        .header {
+            padding: 80px 48px 60px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .header h1 {
+            font-size: 52px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            text-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .header p {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+
+        .help-btn {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            width: 44px;
+            height: 44px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            color: #fff;
+            font-size: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            z-index: 9001;
+            transition: transform 0.2s, background 0.2s;
+        }
+
+        .help-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .section-header {
+            padding: 32px 48px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #fff;
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .section-badge {
+            padding: 4px 12px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            font-size: 12px;
         }
 
         .carousel-container {
-            display: flex; gap: 24px; overflow-x: auto; padding: 20px 4px;
-            scroll-behavior: auto; -ms-overflow-style: none; scrollbar-width: none;
-            padding-left: 1rem;
+            display: flex;
+            gap: 20px;
+            overflow-x: auto;
+            padding: 16px 48px 32px;
+            scroll-behavior: auto;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+            perspective: 1000px;
         }
-        .carousel-container::-webkit-scrollbar { display: none; }
 
-        .xr-clickable {
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-            cursor: pointer;
-            user-select: none;
+        .carousel-container::-webkit-scrollbar {
+            display: none;
         }
-        .xr-clickable:active { transform: scale(0.95); }
 
-        .gallery-card {
-            min-width: 260px; height: 360px;
-            border-radius: 12px;
-            background-color: #1e293b;
-            background-size: cover; background-position: center;
-            position: relative; flex-shrink: 0;
-            border: 2px solid transparent;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        /* 3D Cards with Images */
+        .card {
+            flex-shrink: 0;
+            width: 260px;
+            height: 340px;
+            border-radius: 20px;
+            position: relative;
             overflow: hidden;
+            cursor: pointer;
+            background: #1a1a1a;
+            transform-style: preserve-3d;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s;
         }
 
-        /* Hover Highlight Logic */
-        .xr-hovered {
-            transform: scale(1.08) translateY(-8px);
-            border-color: #4ade80; 
-            box-shadow: 0 20px 30px -10px rgba(74, 222, 128, 0.2);
-            z-index: 20;
+        .card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.4s;
         }
-        
-        .gallery-overlay {
-            position: absolute; inset: 0;
-            background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 60%);
-            opacity: 0.8; transition: opacity 0.3s;
-        }
-        .xr-hovered .gallery-overlay { opacity: 0.4; } /* Brighten image on hover */
 
-        .gallery-caption {
-            position: absolute; bottom: 0; left: 0; right: 0;
-            padding: 16px;
+        .card-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 60%);
+            opacity: 0.9;
+            transition: opacity 0.3s;
+        }
+
+        .card-content {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 24px;
+            color: #fff;
             transform: translateY(0);
+            transition: transform 0.3s;
         }
 
-        /* --- Toast Notification --- */
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .card-subtitle {
+            font-size: 13px;
+            opacity: 0.7;
+        }
+
+        /* Hover Effect - 3D Tilt */
+        .card.xr-hovered {
+            transform: translateY(-12px) rotateX(5deg) rotateY(-5deg) scale(1.02);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(255, 255, 255, 0.3);
+        }
+
+        .card.xr-hovered img {
+            transform: scale(1.1);
+        }
+
+        .card.xr-hovered .card-overlay {
+            opacity: 0.6;
+        }
+
+        /* Selected/Clicked - 3D Bump Effect */
+        .card.selected {
+            animation: cardBump 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes cardBump {
+            0% {
+                transform: scale(1) rotateX(0) rotateY(0);
+            }
+
+            30% {
+                transform: scale(0.92) rotateX(10deg) rotateY(-10deg) translateZ(-30px);
+            }
+
+            60% {
+                transform: scale(1.08) rotateX(-5deg) rotateY(5deg) translateZ(30px);
+            }
+
+            100% {
+                transform: scale(1) rotateX(0) rotateY(0);
+            }
+        }
+
+        /* Toast */
         #toast {
             position: fixed;
-            top: 30px;
+            bottom: 48px;
             left: 50%;
-            transform: translateX(-50%) translateY(-100px);
-            background-color: rgba(255, 255, 255, 0.95);
-            color: #0f172a;
-            padding: 12px 24px;
-            border-radius: 9999px;
+            transform: translateX(-50%) translateY(100px);
+            background: #fff;
+            color: #333;
+            padding: 14px 28px;
+            border-radius: 100px;
+            font-size: 14px;
             font-weight: 600;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
             z-index: 10000;
-            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s;
-            opacity: 0;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             pointer-events: none;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        #toast.show {
-            transform: translateX(-50%) translateY(0);
-            opacity: 1;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
         }
 
+        #toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Loading */
         #loading {
-            position: fixed; inset: 0; background: #020617;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 9999; transition: opacity 0.5s;
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 19999;
+            transition: opacity 0.5s;
+        }
+
+        .loader {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .loader-text {
+            color: #fff;
+            margin-top: 20px;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .xr-clickable {
+            user-select: none;
         }
     </style>
 </head>
+
 <body>
 
-    <!-- XR Cursor -->
-    <div id="xr-cursor"></div>
-
-    <!-- Toast Notification -->
-    <div id="toast">
-        <svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
-        <span id="toast-message">Item Selected</span>
+    <!-- Background Shapes -->
+    <div class="bg-shapes">
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
     </div>
 
-    <!-- Loading Screen -->
+    <!-- Onboarding Modal -->
+    <div class="modal-overlay" id="onboarding">
+        <div class="modal">
+            <div class="modal-emoji">🖐️</div>
+            <h2>Welcome to XR Gallery</h2>
+            <p>Control the gallery using hand gestures. It's magical!</p>
+
+            <div class="instructions">
+                <div class="instruction">
+                    <div class="instruction-icon move">👆</div>
+                    <div class="instruction-text">
+                        <h4>Point to Move</h4>
+                        <p>Use your index finger to control the cursor</p>
+                    </div>
+                </div>
+                <div class="instruction">
+                    <div class="instruction-icon pinch">🤏</div>
+                    <div class="instruction-text">
+                        <h4>Pinch to Select</h4>
+                        <p>Bring thumb & index finger together to click</p>
+                    </div>
+                </div>
+                <div class="instruction">
+                    <div class="instruction-icon scroll">↔️</div>
+                    <div class="instruction-text">
+                        <h4>Move to Edges</h4>
+                        <p>Move hand near screen edges to scroll</p>
+                    </div>
+                </div>
+            </div>
+
+            <button class="modal-btn" onclick="closeOnboarding()">Let's Go! ✨</button>
+        </div>
+    </div>
+
+    <!-- Help Button -->
+    <button class="help-btn xr-clickable" onclick="showOnboarding()">?</button>
+
+    <!-- Cursor -->
+    <div id="cursor-container"></div>
+    <div class="cursor-dot" id="cursor-dot"></div>
+
+    <div id="toast">✨ Selected!</div>
+
     <div id="loading">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
-        <h2 class="text-xl font-bold text-white">Initializing</h2>
-        <p class="text-gray-400 mt-2">Optimizing Assets...</p>
+        <div class="loader"></div>
+        <div class="loader-text">Initializing hand tracking...</div>
     </div>
 
-    <!-- Camera HUD -->
     <div class="hud-container">
         <video id="input_video" class="hud-video" playsinline></video>
         <canvas id="output_canvas" class="hud-canvas"></canvas>
-        <div class="hud-overlay">
-            <div class="zone-line-h" style="top: 20%;"></div>
-            <div class="zone-line-h" style="bottom: 20%;"></div>
-            <div class="zone-line-v" style="left: 15%;"></div>
-            <div class="zone-line-v" style="right: 15%;"></div>
-            <div class="zone-label" style="top: 5px; left: 50%; transform: translateX(-50%)">▲ Scroll</div>
-            <div class="zone-label" style="bottom: 5px; left: 50%; transform: translateX(-50%)">▼ Scroll</div>
-        </div>
         <div class="hud-status">
             <span id="status_dot" class="status-dot"></span>
-            <span id="status_text">Booting...</span>
+            <span id="status_text">Starting</span>
         </div>
     </div>
 
-    <!-- MAIN CONTAINER -->
-    <div id="main-view" class="max-w-[1600px] mx-auto px-6 py-12 pb-64">
-        
-        <header class="text-center mb-16 pt-10">
-            <div class="inline-block px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-400 text-[10px] font-bold tracking-[0.2em] mb-4 border border-indigo-500/20">XR GALLERY V5</div>
-            <h1 class="text-5xl md:text-7xl font-black text-white tracking-tighter mb-6">
-                Infinite<span class="text-indigo-500">Scroll</span>
-            </h1>
-            <p class="text-lg text-slate-400 max-w-xl mx-auto font-light">
-                <span class="text-white font-medium">Hover</span> slows scroll. <span class="text-white font-medium">Pinch</span> to select.
-            </p>
-        </header>
-
-        <!-- Dynamic Content Injection Point -->
+    <main>
+        <div class="header">
+            <h1>✨ XR Gallery</h1>
+            <p>Navigate with gestures. Pinch to select.</p>
+        </div>
         <div id="galleries-root"></div>
-
-        <footer class="text-center text-slate-700 pt-20 border-t border-slate-900/50 mt-20">
-            <p class="text-sm">Powered by MediaPipe & Picsum Photos</p>
-        </footer>
-    </div>
+    </main>
 
     <script>
-        // --- DATA GENERATION ---
-        const categories = [
-            { id: 'nature', title: 'Wilderness & Nature', seed: 'nature' },
-            { id: 'arch', title: 'Modern Architecture', seed: 'architecture' },
-            { id: 'tech', title: 'Future Technology', seed: 'tech' },
-            { id: 'people', title: 'Portraits & People', seed: 'people' },
-            { id: 'abstract', title: 'Abstract & Texture', seed: 'abstract' }
+        // Onboarding
+        function closeOnboarding() {
+            document.getElementById('onboarding').classList.add('hidden');
+            localStorage.setItem('xr-onboarded', 'true');
+        }
+
+        function showOnboarding() {
+            document.getElementById('onboarding').classList.remove('hidden');
+        }
+
+        // Check if first visit
+        if (localStorage.getItem('xr-onboarded')) {
+            document.getElementById('onboarding').classList.add('hidden');
+        }
+
+        // Gallery sections with Picsum images (fast CDN)
+        const sections = [
+            { title: 'Nature', count: 10, seed: 'nature' },
+            { title: 'Architecture', count: 10, seed: 'architecture' },
+            { title: 'Travel', count: 10, seed: 'travel' },
+            { title: 'Abstract', count: 10, seed: 'abstract' }
         ];
 
-        function generateImages(seed, count) {
-            return Array.from({ length: count }, (_, i) => ({
-                // Reduced resolution for faster loading/caching (250x350)
-                url: `https://picsum.photos/seed/${seed}${i}/250/350`, 
-                title: `${seed.charAt(0).toUpperCase() + seed.slice(1)} ${i + 1}`
-            }));
-        }
+        const captions = [
+            ['Mountain Peak', 'Forest Path', 'Ocean Waves', 'Desert Dunes', 'Lakeside View', 'Autumn Colors', 'Spring Bloom', 'Winter Snow', 'Tropical Beach', 'Green Valley'],
+            ['Modern Tower', 'Glass Building', 'Historic Bridge', 'City Skyline', 'Art Museum', 'Urban Streets', 'Spiral Stairs', 'Gothic Church', 'Minimalist Home', 'Industrial Space'],
+            ['Paris Nights', 'Tokyo Streets', 'NYC Skyline', 'Venice Canals', 'London Bridge', 'Sydney Opera', 'Dubai Marina', 'Rome Colosseum', 'Barcelona Art', 'Amsterdam Canal'],
+            ['Color Splash', 'Geometric', 'Fluid Motion', 'Light Trails', 'Bokeh Lights', 'Smoke Art', 'Water Drops', 'Crystal Forms', 'Neon Glow', 'Marble Texture']
+        ];
 
-        // --- DOM POPULATION ---
         const root = document.getElementById('galleries-root');
 
-        categories.forEach((cat, index) => {
-            const section = document.createElement('section');
-            section.className = 'mb-24';
-            
-            const headerHTML = `
-                <div class="flex items-end gap-4 mb-6 px-2">
-                    <h2 class="text-3xl font-bold text-white tracking-tight">${cat.title}</h2>
-                    <span class="text-slate-600 text-sm font-mono mb-1">0${index + 1} / 05</span>
-                </div>
-            `;
-            
-            const wrapper = document.createElement('div');
-            wrapper.className = 'carousel-wrapper';
-            
-            const container = document.createElement('div');
-            container.className = 'carousel-container';
-            container.id = `carousel-${cat.id}`; 
+        sections.forEach((section, sIdx) => {
+            const sectionEl = document.createElement('section');
 
-            const images = generateImages(cat.seed, 15);
-            
-            images.forEach(img => {
+            const header = document.createElement('div');
+            header.className = 'section-header';
+            header.innerHTML = `
+                <span class="section-title">${section.title}</span>
+                <span class="section-badge">${section.count} photos</span>
+            `;
+
+            const carousel = document.createElement('div');
+            carousel.className = 'carousel-container';
+            carousel.id = `carousel-${sIdx}`;
+
+            for (let i = 0; i < section.count; i++) {
                 const card = document.createElement('div');
-                card.className = 'gallery-card xr-clickable group';
-                card.style.backgroundImage = `url(${img.url})`;
-                
+                card.className = 'card xr-clickable';
+
+                // Using Picsum with seed for consistent, fast loading
+                const imgUrl = `https://picsum.photos/seed/${section.seed}${i}/260/340`;
+
                 card.innerHTML = `
-                    <div class="gallery-overlay"></div>
-                    <div class="gallery-caption">
-                        <h4 class="text-white font-bold text-lg">${img.title}</h4>
-                        <div class="h-1 w-12 bg-indigo-500 mt-2 rounded-full"></div>
+                    <img src="${imgUrl}" alt="${captions[sIdx][i]}" loading="lazy" />
+                    <div class="card-overlay"></div>
+                    <div class="card-content">
+                        <div class="card-title">${captions[sIdx][i]}</div>
+                        <div class="card-subtitle">${section.title}</div>
                     </div>
                 `;
-                
-                card.onclick = (e) => {
-                    e.stopPropagation();
-                    showToast(img.title);
-                };
-                
-                container.appendChild(card);
-            });
 
-            wrapper.appendChild(container);
-            section.innerHTML = headerHTML;
-            section.appendChild(wrapper);
-            root.appendChild(section);
+                card.onclick = () => selectCard(card, captions[sIdx][i]);
+                carousel.appendChild(card);
+            }
+
+            sectionEl.appendChild(header);
+            sectionEl.appendChild(carousel);
+            root.appendChild(sectionEl);
         });
 
-        // --- TOAST LOGIC ---
-        const toast = document.getElementById('toast');
-        const toastMsg = document.getElementById('toast-message');
-        let toastTimeout;
-
-        function showToast(text) {
-            toastMsg.innerText = `Selected: ${text}`;
-            toast.classList.add('show');
-            clearTimeout(toastTimeout);
-            toastTimeout = setTimeout(() => {
-                toast.classList.remove('show');
-            }, 2000);
+        // 3D Bump on selection
+        function selectCard(card, title) {
+            card.classList.add('selected');
+            showToast(title);
+            setTimeout(() => card.classList.remove('selected'), 500);
         }
 
-        // --- CONFIG ---
+        // Cursor trail
+        const cursorDot = document.getElementById('cursor-dot');
+        const cursorContainer = document.getElementById('cursor-container');
+        const trails = [];
+        const trailCount = 6;
+        let mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2;
+
+        for (let i = 0; i < trailCount; i++) {
+            const trail = document.createElement('div');
+            trail.className = 'cursor-trail';
+            trail.style.opacity = (1 - i / trailCount) * 0.4;
+            trail.style.width = (8 - i * 0.8) + 'px';
+            trail.style.height = (8 - i * 0.8) + 'px';
+            cursorContainer.appendChild(trail);
+            trails.push({ el: trail, x: mouseX, y: mouseY });
+        }
+
+        document.addEventListener('mousemove', (e) => { mouseX = e.clientX; mouseY = e.clientY; });
+
+        function updateCursorTrail() {
+            let prevX = mouseX, prevY = mouseY;
+            trails.forEach((trail, i) => {
+                const speed = 0.12 - i * 0.015;
+                trail.x += (prevX - trail.x) * speed;
+                trail.y += (prevY - trail.y) * speed;
+                trail.el.style.left = trail.x + 'px';
+                trail.el.style.top = trail.y + 'px';
+                prevX = trail.x; prevY = trail.y;
+            });
+            requestAnimationFrame(updateCursorTrail);
+        }
+        updateCursorTrail();
+
+        // Toast
+        const toast = document.getElementById('toast');
+        let toastTimeout;
+        function showToast(text) {
+            toast.textContent = `✨ ${text}`;
+            toast.classList.add('show');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => toast.classList.remove('show'), 1500);
+        }
+
+        // Hand tracking
         const CONFIG = {
-            scrollZoneTop: 0.20,
-            scrollZoneBottom: 0.80,
-            scrollZoneLeft: 0.15,
-            scrollZoneRight: 0.85,
-            clickThreshold: 0.06, // Slightly easier to pinch (0.05 -> 0.06)
-            pinchDelay: 50, // DRASTICALLY reduced from 200ms to 50ms for instant feel
-            scrollSpeedBase: 8,
-            scrollSpeedMax: 25,
-            smoothing: 0.15
+            scrollZoneTop: 0.20, scrollZoneBottom: 0.80,
+            scrollZoneLeft: 0.15, scrollZoneRight: 0.85,
+            clickThreshold: 0.06, pinchDelay: 50,
+            scrollSpeedBase: 8, scrollSpeedMax: 25, smoothing: 0.15
         };
 
         const state = {
             hand: { x: 0.5, y: 0.5 },
-            isPinching: false,
-            pinchStartTime: 0,
-            hasClicked: false, 
-            hoveredElement: null,
-            scrollFriction: 1.0 
+            isPinching: false, pinchStartTime: 0, hasClicked: false,
+            hoveredElement: null, scrollFriction: 1.0
         };
 
-        // --- SETUP ---
-        const cursor = document.getElementById('xr-cursor');
         const videoElement = document.getElementById('input_video');
         const canvasElement = document.getElementById('output_canvas');
         const canvasCtx = canvasElement.getContext('2d');
@@ -347,12 +774,12 @@
         const statusDot = document.getElementById('status_dot');
         const loadingScreen = document.getElementById('loading');
 
-        const hands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
+        const hands = new Hands({ locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
         hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
         hands.onResults(onResults);
 
         const camera = new Camera(videoElement, {
-            onFrame: async () => { await hands.send({image: videoElement}); },
+            onFrame: async () => await hands.send({ image: videoElement }),
             width: 320, height: 240
         });
 
@@ -362,39 +789,36 @@
             requestAnimationFrame(gameLoop);
         });
 
-        // --- TRACKING ---
         function onResults(results) {
             canvasCtx.save();
             canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-            
-            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+            if (results.multiHandLandmarks?.length > 0) {
                 const landmarks = results.multiHandLandmarks[0];
-                drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {color: '#60a5fa', lineWidth: 2});
-                drawLandmarks(canvasCtx, landmarks, {color: '#e2e8f0', lineWidth: 1, radius: 2});
+                drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, { color: 'rgba(255,255,255,0.6)', lineWidth: 1 });
+                drawLandmarks(canvasCtx, landmarks, { color: '#fff', lineWidth: 1, radius: 2 });
                 updateHandState(landmarks);
             } else {
-                updateStatus('lost', 'No Hand');
+                updateStatus('lost', 'No hand');
             }
             canvasCtx.restore();
         }
 
         function updateHandState(landmarks) {
-            const rawX = 1 - landmarks[8].x; 
-            const rawY = landmarks[8].y;
-
+            const rawX = 1 - landmarks[8].x, rawY = landmarks[8].y;
             state.hand.x += (rawX - state.hand.x) * CONFIG.smoothing;
             state.hand.y += (rawY - state.hand.y) * CONFIG.smoothing;
 
             const screenX = state.hand.x * window.innerWidth;
             const screenY = state.hand.y * window.innerHeight;
-            
-            cursor.style.transform = `translate(${screenX}px, ${screenY}px) translate(-50%, -50%)`;
 
-            // Pinch Detection
+            cursorDot.style.left = screenX + 'px';
+            cursorDot.style.top = screenY + 'px';
+            mouseX = screenX; mouseY = screenY;
+
             const aspect = window.innerWidth / window.innerHeight;
-            const dx = (landmarks[4].x - landmarks[8].x) * aspect; 
+            const dx = (landmarks[4].x - landmarks[8].x) * aspect;
             const dy = landmarks[4].y - landmarks[8].y;
-            const distance = Math.sqrt(dx*dx + dy*dy);
+            const distance = Math.sqrt(dx * dx + dy * dy);
             const isCurrentlyPinching = distance < CONFIG.clickThreshold;
 
             if (isCurrentlyPinching) {
@@ -402,50 +826,36 @@
                     state.isPinching = true;
                     state.pinchStartTime = Date.now();
                     state.hasClicked = false;
-                    cursor.classList.add('clutch-active'); 
+                    cursorDot.classList.add('clutch-active');
                 } else {
                     const duration = Date.now() - state.pinchStartTime;
                     if (duration > CONFIG.pinchDelay && !state.hasClicked) {
                         performClick(screenX, screenY);
                         state.hasClicked = true;
-                        
-                        cursor.classList.remove('clutch-active');
-                        cursor.classList.add('clicked'); 
-                        setTimeout(() => cursor.classList.remove('clicked'), 200);
+                        cursorDot.classList.remove('clutch-active');
+                        cursorDot.classList.add('clicked');
+                        setTimeout(() => cursorDot.classList.remove('clicked'), 150);
                     }
                 }
             } else {
                 state.isPinching = false;
                 state.hasClicked = false;
-                cursor.classList.remove('clutch-active');
+                cursorDot.classList.remove('clutch-active');
             }
 
             checkHover(screenX, screenY);
         }
 
         function performClick(x, y) {
-            // 1. If Locked on an element (Magnetic), click it
-            if (state.hoveredElement) {
-                state.hoveredElement.click();
-                return;
-            }
-
-            // 2. Fallback
+            if (state.hoveredElement) { state.hoveredElement.click(); return; }
             const el = document.elementFromPoint(x, y);
-            if (el) {
-                const clickable = el.closest('.xr-clickable');
-                if (clickable) clickable.click();
-            }
+            if (el) { const clickable = el.closest('.xr-clickable'); if (clickable) clickable.click(); }
         }
 
         function checkHover(x, y) {
             const el = document.elementFromPoint(x, y);
             let newHover = null;
-
-            if (el) {
-                const clickable = el.closest('.xr-clickable');
-                if (clickable) newHover = clickable;
-            }
+            if (el) { const clickable = el.closest('.xr-clickable'); if (clickable) newHover = clickable; }
 
             if (state.hoveredElement !== newHover) {
                 if (state.hoveredElement) state.hoveredElement.classList.remove('xr-hovered');
@@ -453,70 +863,45 @@
                 if (state.hoveredElement) state.hoveredElement.classList.add('xr-hovered');
             }
 
-            // --- FRICTION LOGIC ---
-            // If we are hovering a clickable item (image), apply friction to horizontal scroll
             if (state.hoveredElement) {
-                cursor.classList.add('hovering');
-                state.scrollFriction = 0.3; // Slow down scroll to 30% speed
+                cursorDot.classList.add('hovering');
+                state.scrollFriction = 0.3;
             } else {
-                cursor.classList.remove('hovering');
-                state.scrollFriction = 1.0; // Normal speed
+                cursorDot.classList.remove('hovering');
+                state.scrollFriction = 1.0;
             }
         }
 
-        // --- SCROLLING ---
-        function gameLoop() {
-            handleScrolling();
-            requestAnimationFrame(gameLoop);
-        }
+        function gameLoop() { handleScrolling(); requestAnimationFrame(gameLoop); }
 
         function handleScrolling() {
-            if (state.isPinching) {
-                updateStatus('clutch', 'Braking (Pinch)');
-                return; 
-            }
+            if (state.isPinching) { updateStatus('clutch', 'Selecting'); return; }
 
             const h = state.hand;
-            let moveY = 0;
-            let moveX = 0;
-            let status = "Neutral";
-            let type = "active";
+            let moveY = 0, moveX = 0, status = 'Ready', type = 'active';
 
-            // Vertical
             if (h.y < CONFIG.scrollZoneTop) {
-                const intensity = (CONFIG.scrollZoneTop - h.y) / CONFIG.scrollZoneTop;
-                moveY = -(CONFIG.scrollSpeedBase + intensity * CONFIG.scrollSpeedMax);
-                status = "Scrolling Up"; type = "scrolling";
+                moveY = -(CONFIG.scrollSpeedBase + ((CONFIG.scrollZoneTop - h.y) / CONFIG.scrollZoneTop) * CONFIG.scrollSpeedMax);
+                status = '↑ Scroll'; type = 'scrolling';
             } else if (h.y > CONFIG.scrollZoneBottom) {
-                const intensity = (h.y - CONFIG.scrollZoneBottom) / (1 - CONFIG.scrollZoneBottom);
-                moveY = (CONFIG.scrollSpeedBase + intensity * CONFIG.scrollSpeedMax);
-                status = "Scrolling Down"; type = "scrolling";
+                moveY = CONFIG.scrollSpeedBase + ((h.y - CONFIG.scrollZoneBottom) / (1 - CONFIG.scrollZoneBottom)) * CONFIG.scrollSpeedMax;
+                status = '↓ Scroll'; type = 'scrolling';
             }
 
-            if (moveY !== 0) {
-                window.scrollBy(0, moveY);
-            }
+            if (moveY !== 0) window.scrollBy(0, moveY);
 
-            // Horizontal - Apply Friction
             if (h.x < CONFIG.scrollZoneLeft) {
-                const intensity = (CONFIG.scrollZoneLeft - h.x) / CONFIG.scrollZoneLeft;
-                moveX = -(CONFIG.scrollSpeedBase + intensity * CONFIG.scrollSpeedMax);
-                status = "Panning Left"; type = "scrolling";
+                moveX = -(CONFIG.scrollSpeedBase + ((CONFIG.scrollZoneLeft - h.x) / CONFIG.scrollZoneLeft) * CONFIG.scrollSpeedMax);
+                status = '← Pan'; type = 'scrolling';
             } else if (h.x > CONFIG.scrollZoneRight) {
-                const intensity = (h.x - CONFIG.scrollZoneRight) / (1 - CONFIG.scrollZoneRight);
-                moveX = (CONFIG.scrollSpeedBase + intensity * CONFIG.scrollSpeedMax);
-                status = "Panning Right"; type = "scrolling";
+                moveX = CONFIG.scrollSpeedBase + ((h.x - CONFIG.scrollZoneRight) / (1 - CONFIG.scrollZoneRight)) * CONFIG.scrollSpeedMax;
+                status = '→ Pan'; type = 'scrolling';
             }
 
             if (moveX !== 0) {
-                // Apply Friction Factor (slows down if hovering an image)
                 moveX *= state.scrollFriction;
-
-                // Only scroll if moveX is significant enough
                 if (Math.abs(moveX) > 0.5) {
-                    document.querySelectorAll('.carousel-container').forEach(el => {
-                        el.scrollLeft += moveX;
-                    });
+                    document.querySelectorAll('.carousel-container').forEach(el => el.scrollLeft += moveX);
                 }
             }
 
@@ -524,11 +909,11 @@
         }
 
         function updateStatus(type, text) {
-            if (Math.random() > 0.1 && type === 'scrolling') return; 
-            statusText.innerText = text;
-            statusDot.className = 'status-dot';
-            statusDot.classList.add(type);
+            if (Math.random() > 0.1 && type === 'scrolling') return;
+            statusText.textContent = text;
+            statusDot.className = 'status-dot ' + type;
         }
     </script>
 </body>
+
 </html>
